@@ -4,6 +4,7 @@ from wtforms import Form, StringField, TextAreaField, PasswordField, validators,
 from passlib.hash import sha256_crypt
 import random
 from functools import wraps
+import MySQLdb.cursors
 
 
 app = Flask(__name__)
@@ -11,14 +12,15 @@ app.secret_key='some secret key'
 
 
 #! Config MySQL
-app.config['MYSQL_HOST']='localhost:3306'
+app.config['MYSQL_HOST']='localhost'
+app.config['MYSQL_PORT']=3306
 app.config['MYSQL_USER']='root'
 app.config['MYSQL_PASSWORD']='vanshay2408'
 app.config['MYSQL_DB']='bloodbank'
-# app.config['MYSQL_CURSORCLASS']='DictCursor'
+app.config['MYSQL_CURSORCLASS']='DictCursor'
 #init MySQL
 mysql =  MySQL(app)
-
+# print(mysql)
 
 @app.route('/')
 def index():
@@ -66,7 +68,7 @@ def register():
         password = sha256_crypt.encrypt(str(form.password.data))
         e_id = name+str(random.randint(1111,9999))
         #Create cursor
-        cur = mysql.connection.cursor()
+        cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         cur.execute("INSERT INTO RECEPTION(E_ID,NAME,EMAIL,PASSWORD) VALUES(%s, %s, %s, %s)",(e_id, name, email, password))
         #Commit to DB
         mysql.connection.commit()
@@ -109,11 +111,12 @@ def login():
             else:
                 error = 'Invalid login'
                 return render_template('login.html', error=error)
-            # Close connection
-            cur.close()
+            
         else:
             error = 'Employee ID not found'
             return render_template('login.html', error=error)
+        # Close connection
+    cur.close()
 
     return render_template('login.html')
 
